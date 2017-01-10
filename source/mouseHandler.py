@@ -54,15 +54,20 @@ def playAudioCoordinates(x, y, screenWidth, screenHeight, screenMinPos, detectBr
 	- left to right adjusting the volume between left and right speakers
 	- top to bottom adjusts the pitch of the sound
 	- brightness adjusts the volume of the sound
-	Coordinates (x, y) should be positive assuming the minimum monitor position is (0,0)
+	Coordinates (x, y) are absolute, and can be negative.
 	"""
+
+	# make relative to (0,0) and positive
+	x = x - screenMinPos.x
+	y = y - screenMinPos.y
+
 	minPitch=config.conf['mouse']['audioCoordinates_minPitch']
 	maxPitch=config.conf['mouse']['audioCoordinates_maxPitch']
 	curPitch=minPitch+((maxPitch-minPitch)*((screenHeight-y)/float(screenHeight)))
 	if detectBrightness:
 		startX=min(max(x-blurFactor,0),screenWidth)+screenMinPos.x
-		width=min(blurFactor+1,screenWidth)+screenMinPos.y
-		startY=min(max(y-blurFactor,0),screenHeight)
+		startY=min(max(y-blurFactor,0),screenHeight)+screenMinPos.y
+		width=min(blurFactor+1,screenWidth)
 		height=min(blurFactor+1,screenHeight)
 		grey=screenBitmap.rgbPixelBrightness(scrBmpObj.captureImage( startX, startY, width, height)[0][0])
 		brightness=grey/255.0
@@ -135,7 +140,10 @@ def getMinMaxPoints(screenRect):
 	return (screenMin, screenMax)
 
 def getUniqueNonOverlappingLineSegments(lineSegments):
-	""" lineSegments: a list of tuples holding axis min and axis max """
+	""" lineSegments: a list of unique non-overlapping tuples holding the 
+	 min and max for each segment on an axis. No zero length segments will be returned.
+	 @param lineSegments sequence of tuples holding the segment min and max for a single axis
+	"""
 	segmentsDone = [lineSegments.pop(0)]
 	for segMin, segMax in lineSegments:
 		shouldAdd = True
@@ -160,7 +168,8 @@ def getUniqueNonOverlappingLineSegments(lineSegments):
 				break
 			# else neither in range but not overlapping, no conflict.
 
-			if segMin == segMax:
+			# don't add segments that have no length
+			if (segMax - segMin) < 1:
 				shouldAdd = False
 				break
 		if shouldAdd:
@@ -171,7 +180,9 @@ def getTotalWidthAndHeightAndMinimumPosition(displays):
 	""" Calculate the total screen width and height.
 
 	Depending on screen layouts the rectangles may overlap on the vertical or 
-	horizontal axis. Screens may also have a gap between them. """
+	horizontal axis. Screens may also have a gap between them. In the case where
+	there is a gap in between we count that as contributing to the full virtual
+	space """
 	xRangesToTest = []
 	yRangesToTest = []
 	smallestX, smallestY = (None, None)
@@ -185,12 +196,13 @@ def getTotalWidthAndHeightAndMinimumPosition(displays):
 	horizRanges = getUniqueNonOverlappingLineSegments(xRangesToTest)
 	vertRanges = getUniqueNonOverlappingLineSegments(yRangesToTest)
 
-	# sum the ranges
-	totalWidth, totalHeight = (0, 0)
-	for (rangeMin, rangeMax) in horizRanges:
-		totalWidth  += (rangeMax - rangeMin)
-	for (rangeMin, rangeMax) in vertRanges:
-		totalHeight  += (rangeMax - rangeMin)
+	useFirstElement = lambda x: x[0]
+	horizRanges.sort( key = useFirstElement)
+	vertRanges.sort( key = useFirstElement)
+
+	# get full range. Since the segments are sorted, the largest max minus the smallest min.
+	totalWidth = horizRanges[-1][1] - horizRanges[0][0]
+	totalHeight = vertRanges[-1][1] - vertRanges[0][0]
 
 	return (totalWidth, totalHeight, wx.Point(smallestX, smallestY))
 
@@ -201,18 +213,13 @@ def executeMouseMoveEvent(x,y):
 	x, y = getMouseRestrictedToScreens(x, y, displays)
 	screenWidth, screenHeight, minPos = getTotalWidthAndHeightAndMinimumPosition(displays)
 
-	# make relative to (0,0) and positive
-	adjustedX = x - minPos.x
-	adjustedY = y - minPos.y
-
 	if config.conf["mouse"]["audioCoordinatesOnMouseMove"]:
-		playAudioCoordinates(adjustedX,adjustedY,
-			screenWidth,screenHeight, minPos,
+		playAudioCoordinates(x, y, screenWidth, screenHeight, minPos,
 			config.conf['mouse']['audioCoordinates_detectBrightness'],
 			config.conf['mouse']['audioCoordinates_blurFactor'])
 
 	oldMouseObject=api.getMouseObject()
-	mouseObject=desktopObject.objectFromPoint(x,y)
+	mouseObject=desktopObject.objectFromPoint(x, y)
 	while mouseObject and mouseObject.beTransparentToMouse:
 		mouseObject=mouseObject.parent
 	if not mouseObject:
