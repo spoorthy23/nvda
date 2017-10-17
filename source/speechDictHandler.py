@@ -118,9 +118,22 @@ def loadVoiceDict(synth):
 	"""Loads appropriate dictionary for the given synthesizer.
 It handles case when the synthesizer doesn't support voice setting.
 """
+	try:
+		import dictFormatUpgrade
+		dictFormatUpgrade.doAnyUpgrades(synth)
+	except:
+		log.error("error trying to upgrade dictionaries", exc_info=True)
+		pass
 	if synth.isSupported("voice"):
-		voiceName = synth.availableVoices[synth.voice].name
-		fileName=r"%s\%s-%s.dic"%(speechDictsPath,synth.name,api.filterFileName(voiceName))
+		voiceID = synth.availableVoices[synth.voice].ID
+		fileName=r"{path}\{synth}\{synth}-{voiceID}.dic".format(
+				path=speechDictsPath,
+				synth=synth.name,
+				voiceID=api.filterFileName(voiceID)
+				)
 	else:
-		fileName=r"%s\%s.dic"%(speechDictsPath,synth.name)
+		fileName=r"{path}\{synth}\{synth}.dic".format(
+				path=speechDictsPath,
+				synth=synth.name
+				)
 	dictionaries["voice"].load(fileName)
