@@ -222,7 +222,7 @@ If the command does not have a mode listed, it will work in any mode.
 To toggle touch modes, perform a 3-finger tap.
 %kc:endInclude
 
-+++ Touch keyboard +++ [TouchKeyboard]
++++ Touch keyboard +++[TouchKeyboard]
 The touch keyboard is used to enter text and commands from a touchscreen.
 When focused on an edit field, you can bring up the touch keyboard by double-tapping the touch keyboard icon on the bottom of the screen.
 For tablets such as Microsoft Surface Pro, the touch keyboard is always available when the keyboard is undocked.
