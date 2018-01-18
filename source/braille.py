@@ -1845,6 +1845,7 @@ class BrailleHandler(baseObject.AutoPropertyObject):
 		display = config.conf["braille"]["display"]
 		if display != self.display.name:
 			self.setDisplayByName(display)
+		self._tether = config.conf["braille"]["tetherTo"]
 
 class _BgThread:
 	"""A singleton background thread used for background writes and raw braille display I/O.
