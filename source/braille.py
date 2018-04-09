@@ -2119,21 +2119,30 @@ class BrailleDisplayDriver(baseObject.AutoPropertyObject):
 		@rtype: generator of (set, set)
 		"""
 		import globalCommands
-		# Ignore the locale gesture map when searching for braille display gestures
+		# Ignore the locale gesture map when searching for braille display gestures.
 		globalMaps = [inputCore.manager.userGestureMap]
 		if cls.gestureMap:
-			globalMaps.append(cls.gestureMap)
+			# Global maps should be processed in least  to most important order.
+			# The user gesture map could override assignments in the user gesture map.
+			globalMaps.insert(0, cls.gestureMap)
 		prefixes=["br({source})".format(source=cls.name),]
 		if model:
 			prefixes.insert(0,"br({source}.{model})".format(source=cls.name, model=model))
-		for globalMap in globalMaps:
-			for scriptCls, gesture, scriptName in globalMap.getScriptsForAllGestures():
-				if (any(gesture.startswith(prefix.lower()) for prefix in prefixes)
-					and scriptCls is globalCommands.GlobalCommands
-					and scriptName and scriptName.startswith("kb")):
-					emuGesture = keyboardHandler.KeyboardInputGesture.fromName(scriptName.split(":")[1])
-					if emuGesture.isModifier:
-						yield set(gesture.split(":")[1].split("+")), set(emuGesture._keyNamesInDisplayOrder)
+		# Collect all keyboard emulation gestures in a dictionary.
+		# Since the user gesture map will be quieried last,
+		# using a dictionary with gesture as key will filter out all overridden assignments.
+		emuGestureToScriptMap = {gesture: scriptName
+			for globalMap in globalMaps
+			for scriptCls, gesture, scriptName in globalMap.getScriptsForAllGestures()
+			if any(gesture.startswith(prefix.lower()) for prefix in prefixes)
+			and scriptCls is globalCommands.GlobalCommands
+			and (scriptName is None or scriptName.startswith("kb"))
+		}
+		for gesture, scriptName in emuGestureToScriptMap.iteritems():
+			if scriptName:
+				emuGesture = keyboardHandler.KeyboardInputGesture.fromName(scriptName.split(":")[1])
+				if emuGesture.isModifier:
+					yield set(gesture.split(":")[1].split("+")), set(emuGesture._keyNamesInDisplayOrder)
 
 	def _handleAck(self):
 		"""Base implementation to handle acknowledgement packets."""
