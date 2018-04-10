@@ -28,6 +28,7 @@ ALVA_KEY_REPORT_KEY_POS = 1
 ALVA_KEY_REPORT_KEY_GROUP_POS = 2
 ALVA_KEY_RAW_INPUT_MASK = 0x30
 ALVA_DISPLAY_SETTINGS_REPORT = b"\x05"
+ALVA_DISPLAY_SETTINGS_STATUS_CELL_SIDE_POS = 2
 ALVA_DISPLAY_SETTINGS_CELL_COUNT_POS = 6
 ALVA_KEY_SETTINGS_REPORT = b"\x06"
 ALVA_KEY_SETTINGS_POS = 1 # key settings are stored as bits in 1 byte
@@ -142,6 +143,10 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver, ScriptableObject):
 		oldNumCells = self.numCells
 		if self.isHid:
 			displaySettings = self._dev.getFeature(ALVA_DISPLAY_SETTINGS_REPORT)
+			if ord(displaySettings[ALVA_DISPLAY_SETTINGS_STATUS_CELL_SIDE_POS]) > 1:
+				# #8106: The ALVA BC680 is known to return a malformed feature report for the first issued request.
+				# Therefore, request another display settings report
+				displaySettings = self._dev.getFeature(ALVA_DISPLAY_SETTINGS_REPORT)
 			self.numCells = ord(displaySettings[ALVA_DISPLAY_SETTINGS_CELL_COUNT_POS])
 			timeStr = self._dev.getFeature(ALVA_RTC_REPORT)[1:ALVA_RTC_STR_LENGTH+1]
 			try:
@@ -401,7 +406,7 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver, ScriptableObject):
 			"title": ("br(alva):etouch2",),
 			"reportStatusLine": ("br(alva):etouch4",),
 			"kb:shift+tab": ("br(alva):sp1",),
-			"kb:alt": ("br(alva):sp2",),
+			"kb:alt": ("br(alva):sp2","br(alva):alt",),
 			"kb:escape": ("br(alva):sp3",),
 			"kb:tab": ("br(alva):sp4",),
 			"kb:upArrow": ("br(alva):spUp",),
@@ -419,7 +424,6 @@ class BrailleDisplayDriver(braille.BrailleDisplayDriver, ScriptableObject):
 			"kb:control+end": ("br(alva):t3+spDown",),
 			"kb:home": ("br(alva):t3+spLeft",),
 			"kb:end": ("br(alva):t3+spRight",),
-			"kb:alt": ("br(alva):alt",),
 			"kb:control": ("br(alva):control",),
 		}
 	})
