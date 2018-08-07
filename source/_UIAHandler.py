@@ -41,6 +41,7 @@ WDAG_PROCESS_NAME=u'hvsirdpclient'
 goodUIAWindowClassNames=[
 	# A WDAG (Windows Defender Application Guard) Window is always native UIA, even if it doesn't report as such.
 	'RAIL_WINDOW',
+	"EXCEL6",
 ]
 
 badUIAWindowClassNames=[
@@ -56,7 +57,6 @@ badUIAWindowClassNames=[
 	"RichEdit20",
 	"RICHEDIT50W",
 	"SysListView32",
-	"EXCEL7",
 	"Button",
 	# #7497: Windows 10 Fall Creators Update has an incomplete UIA implementation for console windows, therefore for now we should ignore it.
 	# It does not implement caret/selection, and probably has no new text events.
