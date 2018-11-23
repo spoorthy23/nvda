@@ -167,8 +167,12 @@ class VisionEnhancementProvider(AutoPropertyObject):
 		if textInfo.isCollapsed:
 			textInfo.expand(textInfos.UNIT_CHARACTER)
 		try:
-			rect = textInfo.boundingRect.toLTRB()
-		except (LookupError, NotImplementedError):
+			rects = textInfo.boundingRects
+		except NotImplementedError:
+			rects = None
+		if rects:
+			rect = rects[0].toLTRB()
+		else:
 			rect = RectLTRB.fromPoint(textInfo.pointAtStart)
 		return rect
 
