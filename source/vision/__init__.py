@@ -130,14 +130,22 @@ class VisionEnhancementProvider(AutoPropertyObject):
 	@classmethod
 	def getContextRect(cls, context, obj=None):
 		"""Gets a rectangle for the specified context.
-		If L{obj} is not C{None}, the object is used to get the rectangle from.
+		If L{obj} is not C{None}, the object is used to get the rectangle from, if necessary.
 		Otherwise, the base implementation calls L{getContextObject} and gets a rectangle from the object, if necessary."""
+		if context == CONTEXT_REVIEW:
+			return cls._getRectFromTextInfo(api.getReviewPosition())
 		if not obj:
 			obj = cls.getContextObject(context)
 		if not obj:
 			raise LookupError
-		if context == CONTEXT_CARET:
-			if getattr(obj, "treeInterceptor", None) and not obj.treeInterceptor.passThrough:
+		isTreeInterceptor = isinstance(obj, treeInterceptorHandler.TreeInterceptor)
+		if (
+			(context == CONTEXT_FOCUS and isTreeInterceptor) or
+			context == CONTEXT_CARET
+		):
+			if isTreeInterceptor:
+				pass
+			elif getattr(obj, "treeInterceptor", None) and not obj.treeInterceptor.passThrough:
 				obj = obj.treeInterceptor
 			elif isinstance(obj, NVDAObjects.NVDAObject):
 				# Import late to avoid circular import
@@ -155,8 +163,6 @@ class VisionEnhancementProvider(AutoPropertyObject):
 				# There is nothing to do here
 				raise LookupError
 			return cls._getRectFromTextInfo(caretInfo)
-		elif context == CONTEXT_REVIEW:
-			return cls._getRectFromTextInfo(api.getReviewPosition())
 		location = obj.location
 		if not location:
 			raise LookupError
@@ -517,16 +523,21 @@ class VisionHandler(AutoPropertyObject):
 			self.highlighter.updateContextRect(context, obj=obj)
 
 	def handleGainFocus(self, obj):
-		context = CONTEXT_CARET if isinstance(obj, treeInterceptorHandler.TreeInterceptor) else CONTEXT_FOCUS
+		context = CONTEXT_FOCUS
 		if self.magnifier and context in self.magnifier.enabledTrackingContexts:
 			self.magnifier.trackToObject(obj, context=context)
+		mightHaveCaret = getattr(obj, "_hasNavigableText", False)
+		if mightHaveCaret:
+			# This object most likely has a caret.
+			# Intentionally check this after tracking a magnifier to the object itself.
+			self.handleCaretMove(obj)
 		if self.highlighter and context in self.highlighter.enabledHighlightContexts:
 			if context != CONTEXT_CARET:
 				self.highlighter.updateContextRect(context, obj=obj)
-			if CONTEXT_CARET in self.highlighter.enabledHighlightContexts:
-				# Check whether this object has a caret.
-				# If it has one, update the caret highlight.
-				# If it hasn't, clear the caret rectangle from the map
+			if not mightHaveCaret and CONTEXT_CARET in self.highlighter.enabledHighlightContexts:
+				# If this object does not have a caret, clear the caret rectangle from the map
+				# However, in the unlikely case it yet has a caret, we want to highlight that.
+				# This happens in Microsoft Excel, for example.
 				self.highlighter.updateContextRect(CONTEXT_CARET, obj=obj)
 
 	def handleCaretMove(self, obj):
