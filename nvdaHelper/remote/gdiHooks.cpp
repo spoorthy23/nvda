@@ -367,7 +367,7 @@ void ExtTextOutHelper(displayModel_t* model, HDC hdc, int x, int y, const RECT* 
 		clearRect=*lprc;
 		dcPointsToScreenPoints(hdc,(LPPOINT)&clearRect,2,false);
 		//Also if opaquing is requested, clear this rectangle in the given display model
-		if(fuOptions&ETO_OPAQUE) model->clearRectangle(clearRect);
+		//if(fuOptions&ETO_OPAQUE) model->clearRectangle(clearRect);
 	}
 	//If there is no string given, then we don't need to go further
 	if(!lpString||cbCount<=0) return;
@@ -475,12 +475,12 @@ void ExtTextOutHelper(displayModel_t* model, HDC hdc, int x, int y, const RECT* 
 	dcPointsToScreenPoints(hdc,(LPPOINT)&textRect,2,false);
 	//Calculate the real physical baselineFromTop
 	//Clear a space for the text in the model, though take clipping in to account
-	RECT tempRect;
+	/*RECT tempRect;
 	if(lprc&&(fuOptions&ETO_CLIPPED)&&IntersectRect(&tempRect,&textRect,&clearRect)) {
 		model->clearRectangle(tempRect,TRUE);
 	} else {
 		model->clearRectangle(textRect,TRUE);
-	}
+	}*/
 	//Make sure this is text, and that its not using the symbol charset (e.g. the tick for a checkbox)
 	//Before recording the text.
 	if(cbCount>0&&tm.tmCharSet!=SYMBOL_CHARSET) {
@@ -625,7 +625,7 @@ int WINAPI fake_FillRect(HDC hdc, const RECT* lprc, HBRUSH hBrush) {
 	if(!model) return res;
 	RECT rect=*lprc;
 	dcPointsToScreenPoints(hdc,(LPPOINT)&rect,2,false);
-	model->clearRectangle(rect);
+	//model->clearRectangle(rect);
 	model->release();
 	return res;
 }
@@ -685,7 +685,7 @@ BOOL WINAPI fake_PatBlt(HDC hdc, int nxLeft, int nxTop, int nWidth, int nHeight,
 	if(!model) return res;
 	RECT rect={nxLeft,nxTop,nxLeft+nWidth,nxTop+nHeight};
 	dcPointsToScreenPoints(hdc,(LPPOINT)&rect,2,false);
-	model->clearRectangle(rect);
+	//model->clearRectangle(rect);
 	model->release();
 	return res;
 }
@@ -704,7 +704,7 @@ HDC WINAPI fake_BeginPaint(HWND hwnd, LPPAINTSTRUCT lpPaint) {
 	RECT rect=lpPaint->rcPaint;
 	ClientToScreen(hwnd,(LPPOINT)&rect);
 	ClientToScreen(hwnd,((LPPOINT)&rect)+1);
-	model->clearRectangle(rect);
+	//model->clearRectangle(rect);
 	model->release();
 	return res;
 }
@@ -780,7 +780,7 @@ HGDIOBJ WINAPI fake_SelectObject(HDC hdc, HGDIOBJ hGdiObj) {
 	//Try and get a displayModel for this DC
 	displayModel_t* model=acquireDisplayModel(hdc,TRUE);
 	if(!model) return res;
-	model->clearAll();
+	//model->clearAll();
 	model->release();
 	return res;
 }
